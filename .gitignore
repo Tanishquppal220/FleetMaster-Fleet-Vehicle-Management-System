@@ -1,3 +1,4 @@
 Backend/node_modules
+Backend/src/utils/test_google_auth.js
 Backend/.env
 Frontend/node_modules
