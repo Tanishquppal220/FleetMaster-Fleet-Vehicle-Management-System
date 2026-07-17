@@ -62,7 +62,7 @@ function StatusBadge({ children, tone = 'slate' }) {
     slate: 'bg-slate-50 text-slate-600 border-slate-200',
   };
 
-  return <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
+  return <span className={`rounded-full border px-2 py-0.5 text-xs text-center font-semibold ${tones[tone]}`}>{children}</span>;
 }
 
 function ProgressRow({ label, value, total, tone = 'emerald' }) {

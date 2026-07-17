@@ -165,7 +165,7 @@ export default function ExpensesPage() {
       </div>
 
       {error && <div className="bg-red-950/40 border border-red-800/40 text-red-500 p-4 rounded-lg text-sm">{error}</div>}
-      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 p-4 rounded-lg text-sm">{success}</div>}
+      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-black p-4 rounded-lg text-sm">{success}</div>}
 
       {loading ? (
         <div className="text-center py-12 text-zinc-400 text-sm">Loading expense transactions...</div>
@@ -189,7 +189,7 @@ export default function ExpensesPage() {
               {expenses.map((e) => (
                 <tr key={e._id} className="hover:bg-zinc-900/30 transition-colors">
                   <td className="p-4 font-mono text-zinc-300 text-xs">{e.expenseId}</td>
-                  <td className="p-4 font-mono font-semibold text-emerald-400">
+                  <td className="p-4 font-mono font-semibold text-black">
                     {e.vehicle ? e.vehicle.vehicleNumber : <span className="text-zinc-500 italic">Deleted Vehicle</span>}
                   </td>
                   <td className="p-4 text-zinc-300">
@@ -198,7 +198,7 @@ export default function ExpensesPage() {
                   <td className="p-4">{e.fuelLiters} L</td>
                   <td className="p-4">${e.fuelCost?.toLocaleString()}</td>
                   <td className="p-4">${e.miscExpense?.toLocaleString()}</td>
-                  <td className="p-4 font-semibold text-emerald-400">
+                  <td className="p-4 font-semibold text-black">
                     ${(e.fuelCost + e.miscExpense).toLocaleString()}
                   </td>
                   <td className="p-4">
@@ -207,7 +207,7 @@ export default function ExpensesPage() {
                         href={e.receiptUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-emerald-400 hover:underline font-semibold text-xs flex items-center gap-1"
+                        className="text-black hover:underline font-semibold text-xs flex items-center gap-1"
                       >
                         📄 View Receipt
                       </a>
@@ -220,7 +220,7 @@ export default function ExpensesPage() {
                       <>
                         <button
                           onClick={() => handleOpenEdit(e)}
-                          className="text-zinc-300 hover:text-emerald-400 font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
+                          className="text-zinc-300 hover:text-black font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
                         >
                           Edit
                         </button>
@@ -374,12 +374,12 @@ export default function ExpensesPage() {
                     accept="image/*"
                     onChange={handleFileUpload}
                     disabled={uploading}
-                    className="block w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-950/40 file:text-emerald-400 hover:file:bg-emerald-900/30 cursor-pointer disabled:opacity-50"
+                    className="block w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-950/40 file:text-black hover:file:bg-emerald-900/30 cursor-pointer disabled:opacity-50"
                   />
                   {uploading && <span className="text-xs text-zinc-400 animate-pulse">Uploading to ImageKit...</span>}
                 </div>
                 {formData.receiptUrl && (
-                  <p className="text-xs text-emerald-400 mt-2 font-semibold">✔ Receipt linked: {formData.receiptUrl.substring(0, 45)}...</p>
+                  <p className="text-xs text-black mt-2 font-semibold">✔ Receipt linked: {formData.receiptUrl.substring(0, 45)}...</p>
                 )}
               </div>
 

@@ -134,7 +134,7 @@ export default function MaintenancePage() {
       </div>
 
       {error && <div className="bg-red-950/40 border border-red-800/40 text-red-500 p-4 rounded-lg text-sm">{error}</div>}
-      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 p-4 rounded-lg text-sm">{success}</div>}
+      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-black p-4 rounded-lg text-sm">{success}</div>}
 
       {loading ? (
         <div className="text-center py-12 text-zinc-400 text-sm">Loading maintenance history...</div>
@@ -156,7 +156,7 @@ export default function MaintenancePage() {
             <tbody className="divide-y divide-zinc-850 text-sm">
               {records.map((r) => (
                 <tr key={r._id} className="hover:bg-zinc-900/30 transition-colors">
-                  <td className="p-4 font-mono font-semibold text-emerald-400">
+                  <td className="p-4 font-mono font-semibold text-black">
                     {r.vehicle ? r.vehicle.vehicleNumber : <span className="text-zinc-500 italic">Deleted Vehicle</span>}
                   </td>
                   <td className="p-4">{r.type}</td>
@@ -164,28 +164,26 @@ export default function MaintenancePage() {
                   <td className="p-4 text-zinc-300">${r.cost?.toLocaleString()}</td>
                   <td className="p-4">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
-                        r.priority === 'High'
-                          ? 'bg-red-950/30 text-red-400 border-red-900/40'
-                          : r.priority === 'Medium'
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium border ${r.priority === 'High'
+                        ? 'bg-red-950/30 text-red-400 border-red-900/40'
+                        : r.priority === 'Medium'
                           ? 'bg-yellow-950/30 text-yellow-400 border-yellow-900/40'
-                          : 'bg-emerald-950/30 text-emerald-400 border-emerald-900/40'
-                      }`}
+                          : 'bg-emerald-950/30 text-black border-emerald-900/40'
+                        }`}
                     >
                       {r.priority}
                     </span>
                   </td>
                   <td className="p-4">
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        r.status === 'Completed'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : r.status === 'In Progress'
-                          ? 'bg-blue-500/20 text-blue-400'
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${r.status === 'Completed'
+                        ? 'bg-emerald-500/20 text-black'
+                        : r.status === 'In Progress'
+                          ? 'bg-blue-500/20 text-black'
                           : r.status === 'Cancelled'
-                          ? 'bg-zinc-800 text-zinc-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
+                            ? 'bg-zinc-800 text-zinc-400'
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}
                     >
                       {r.status}
                     </span>
@@ -197,17 +195,17 @@ export default function MaintenancePage() {
                     <td className="p-4 text-right space-x-2">
                       <button
                         onClick={() => handleOpenEdit(r)}
-                        className="text-zinc-300 hover:text-emerald-400 font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
+                        className="text-zinc-300 hover:text-black font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
                       >
                         Update
                       </button>
                       {user?.role === 'admin' && (
-                      <button
-                        onClick={() => handleDelete(r._id)}
-                        className="text-red-400 hover:text-red-300 font-semibold text-xs border border-zinc-750 hover:border-red-900/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                        <button
+                          onClick={() => handleDelete(r._id)}
+                          className="text-red-400 hover:text-red-300 font-semibold text-xs border border-zinc-750 hover:border-red-900/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
                       )}
                     </td>
                   )}

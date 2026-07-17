@@ -29,7 +29,7 @@ export default function DriversPage() {
       setLoading(true);
       const driverList = await driverService.getDrivers();
       setDrivers(driverList);
-      
+
       const vehicleList = await vehicleService.getVehicles();
       setVehicles(vehicleList.filter(v => v.availability));
     } catch (err) {
@@ -122,7 +122,7 @@ export default function DriversPage() {
       </div>
 
       {error && <div className="bg-red-950/40 border border-red-800/40 text-red-500 p-4 rounded-lg text-sm">{error}</div>}
-      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 p-4 rounded-lg text-sm">{success}</div>}
+      {success && <div className="bg-emerald-950/40 border border-emerald-800/40 text-black p-4 rounded-lg text-sm">{success}</div>}
 
       <div className="relative rounded-lg border border-slate-200 bg-white shadow-sm">
         <FaMagnifyingGlass className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -165,7 +165,7 @@ export default function DriversPage() {
                         className="h-10 w-10 rounded-full object-cover border border-zinc-800"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-emerald-950/40 border border-emerald-900 flex items-center justify-center font-bold text-emerald-400 uppercase">
+                      <div className="h-10 w-10 rounded-full bg-emerald-950/40 border border-emerald-900 flex items-center justify-center font-bold text-black uppercase">
                         {(d.name?.name || 'D').slice(0, 2)}
                       </div>
                     )}
@@ -176,7 +176,7 @@ export default function DriversPage() {
                   <td className="p-4 font-mono text-zinc-300">{d.licenseNumber}</td>
                   <td className="p-4">
                     {d.licensePhoto ? (
-                      <a href={d.licensePhoto} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline font-semibold text-xs">
+                      <a href={d.licensePhoto} target="_blank" rel="noreferrer" className="text-black hover:underline font-semibold text-xs">
                         View License
                       </a>
                     ) : (
@@ -186,26 +186,25 @@ export default function DriversPage() {
                   <td className="p-4 text-zinc-300">{d.experience} years</td>
                   <td className="p-4 min-w-40">
                     <span
-                      className={`inline-flex min-w-28 items-center justify-center whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold leading-none ${
-                        d.status === 'Available'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : d.status === 'On Trip'
+                      className={`inline-flex min-w-28 items-center justify-center whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold leading-none ${d.status === 'Available'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : d.status === 'On Trip'
                           ? 'bg-blue-50 text-blue-700 border-blue-200'
                           : d.status === 'In Maintenance'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-slate-50 text-slate-600 border-slate-200'
-                      }`}
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-slate-50 text-slate-600 border-slate-200'
+                        }`}
                     >
                       {d.status}
                     </span>
                   </td>
-                  <td className="p-4 text-emerald-400 font-mono font-semibold">
+                  <td className="p-4 text-black font-mono font-semibold">
                     {d.assignedVehicle ? d.assignedVehicle.vehicleNumber : <span className="text-zinc-500 italic">None</span>}
                   </td>
                   <td className="p-4 text-right">
                     <button
                       onClick={() => handleOpenEdit(d)}
-                      className="text-zinc-300 hover:text-emerald-400 font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
+                      className="text-zinc-300 hover:text-black font-semibold text-xs border border-zinc-700 hover:border-emerald-500/40 rounded px-2.5 py-1 transition-colors cursor-pointer"
                     >
                       Edit Profile
                     </button>
@@ -258,7 +257,7 @@ export default function DriversPage() {
                 />
                 {uploading && <p className="mt-2 text-xs text-zinc-400">Uploading license photo to ImageKit...</p>}
                 {formData.licensePhoto && (
-                  <a href={formData.licensePhoto} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-emerald-400 hover:underline">
+                  <a href={formData.licensePhoto} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-black hover:underline">
                     View uploaded license photo
                   </a>
                 )}
