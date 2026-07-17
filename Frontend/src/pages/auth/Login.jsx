@@ -78,7 +78,7 @@ export default function Login() {
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          New driver? <Link to="/register" className="font-semibold text-emerald-700 hover:text-emerald-800">Create driver account</Link>
+          New driver/mechanic? <Link to="/register" className="font-semibold text-emerald-700 hover:text-emerald-800">Create account</Link>
         </p>
       </main>
     </div>

@@ -55,6 +55,8 @@ function EmptyState({ message }) {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const isMechanic = user?.role === 'mechanic';
+  const isDriver = user?.role === 'driver';
   const [profile, setProfile] = useState({
     name: '',
     phone: '',
@@ -89,11 +91,9 @@ export default function Dashboard() {
         driverProfile: profileResponse.data.data.driverProfile || null,
       });
 
-      if (user?.role === 'driver') {
-        const [maintenance, expenses] = await Promise.all([
-          maintenanceService.getMaintenanceRecords().catch(() => []),
-          expenseService.getExpenses().catch(() => []),
-        ]);
+      if (isDriver || isMechanic) {
+        const maintenance = await maintenanceService.getMaintenanceRecords().catch(() => []);
+        const expenses = isDriver ? await expenseService.getExpenses().catch(() => []) : [];
 
         setActivity({ maintenance, expenses });
       }
@@ -110,11 +110,15 @@ export default function Dashboard() {
 
   const insights = useMemo(() => {
     const openMaintenance = activity.maintenance.filter((item) => !['Completed', 'Cancelled'].includes(item.status));
+    const completedMaintenance = activity.maintenance.filter((item) => item.status === 'Completed');
+    const urgentMaintenance = openMaintenance.filter((item) => ['High', 'Critical'].includes(item.priority));
     const expenseTotal = activity.expenses.reduce((sum, expense) => sum + totalExpense(expense), 0);
     const latestExpense = activity.expenses[0];
 
     return {
       openMaintenance,
+      completedMaintenance,
+      urgentMaintenance,
       expenseTotal,
       latestExpense,
       assignedVehicle: profile.driverProfile?.assignedVehicle,
@@ -141,6 +145,30 @@ export default function Dashboard() {
       setSuccess('Profile photo uploaded. Save profile to apply it.');
     } catch (err) {
       setError(err.response?.data?.message || 'Avatar upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleMechanicPhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setError('');
+      setSuccess('');
+      const res = await uploadService.uploadImage(file);
+      await api.put('/auth/update-profile', {
+        name: profile.name,
+        phone: profile.phone,
+        address: profile.address,
+        avatar: res.url,
+      });
+      setProfile((prev) => ({ ...prev, avatar: res.url }));
+      setSuccess('Mechanic profile photo uploaded and saved.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Mechanic photo upload failed');
     } finally {
       setUploading(false);
     }
@@ -225,36 +253,50 @@ export default function Dashboard() {
       {success && <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SummaryTile icon={FaIdCard} title="Driver Status" value={insights.driverStatus} note={`License: ${insights.licenseNumber}`} />
-        <SummaryTile icon={FaScrewdriverWrench} title="Open Maintenance" value={insights.openMaintenance.length} note="Scheduled or in-progress service logs" tone="amber" />
-        <SummaryTile icon={FaGasPump} title="Recorded Expenses" value={currency.format(insights.expenseTotal)} note={insights.latestExpense ? 'Latest expense is available below' : 'No expenses recorded yet'} tone="blue" />
+        {isMechanic ? (
+          <>
+            <SummaryTile icon={FaIdCard} title="Mechanic Status" value="Active" note="Maintenance workspace access enabled" />
+            <SummaryTile icon={FaScrewdriverWrench} title="Open Jobs" value={insights.openMaintenance.length} note="Scheduled or in-progress service work" tone="amber" />
+            <SummaryTile icon={FaCalendarCheck} title="Completed Jobs" value={insights.completedMaintenance.length} note="Closed maintenance records" tone="blue" />
+          </>
+        ) : (
+          <>
+            <SummaryTile icon={FaIdCard} title="Driver Status" value={insights.driverStatus} note={`License: ${insights.licenseNumber}`} />
+            <SummaryTile icon={FaScrewdriverWrench} title="Open Maintenance" value={insights.openMaintenance.length} note="Scheduled or in-progress service logs" tone="amber" />
+            <SummaryTile icon={FaGasPump} title="Recorded Expenses" value={currency.format(insights.expenseTotal)} note={insights.latestExpense ? 'Latest expense is available below' : 'No expenses recorded yet'} tone="blue" />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Assigned Fleet</h2>
-              <p className="text-sm text-slate-500">Your current vehicle assignment and readiness details.</p>
+              <h2 className="text-lg font-bold text-slate-950">{isMechanic ? 'Work Profile' : 'Assigned Fleet'}</h2>
+              <p className="text-sm text-slate-500">
+                {isMechanic ? 'Your maintenance role and current service workload.' : 'Your current vehicle assignment and readiness details.'}
+              </p>
             </div>
             <Link to="/dashboard/maintenance" className="text-sm font-semibold text-emerald-700">Maintenance</Link>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
               <FaLocationArrow className="text-emerald-600" />
-              <p className="mt-3 text-sm font-semibold uppercase text-slate-500">Vehicle</p>
+              <p className="mt-3 text-sm font-semibold uppercase text-slate-500">{isMechanic ? 'Primary Focus' : 'Vehicle'}</p>
               <p className="mt-1 text-2xl font-bold text-slate-950">
-                {insights.assignedVehicle?.vehicleNumber || 'Not assigned'}
+                {isMechanic ? 'Maintenance' : insights.assignedVehicle?.vehicleNumber || 'Not assigned'}
               </p>
               <p className="mt-2 text-sm text-slate-500">
-                {insights.assignedVehicle?.type || 'Admin can assign a vehicle from driver management.'}
+                {isMechanic ? `${insights.urgentMaintenance.length} urgent job${insights.urgentMaintenance.length === 1 ? '' : 's'} need attention.` : insights.assignedVehicle?.type || 'Admin can assign a vehicle from driver management.'}
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
               <FaCircleCheck className="text-emerald-600" />
-              <p className="mt-3 text-sm font-semibold uppercase text-slate-500">Experience</p>
-              <p className="mt-1 text-2xl font-bold text-slate-950">{insights.experience} years</p>
-              <p className="mt-2 text-sm text-slate-500">Profile records are controlled by fleet administration.</p>
+              <p className="mt-3 text-sm font-semibold uppercase text-slate-500">{isMechanic ? 'Availability' : 'Experience'}</p>
+              <p className="mt-1 text-2xl font-bold text-slate-950">{isMechanic ? 'Ready' : `${insights.experience} years`}</p>
+              <p className="mt-2 text-sm text-slate-500">
+                {isMechanic ? 'Use the mechanic dashboard for queue-level progress.' : 'Profile records are controlled by fleet administration.'}
+              </p>
             </div>
           </div>
         </section>
@@ -264,13 +306,20 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-slate-950">Quick Actions</h2>
           </div>
           <div className="space-y-3">
-            <Link to="/dashboard/expenses" className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:border-emerald-200">
-              <FaGasPump className="text-emerald-600" />
-              <span className="font-semibold text-slate-950">Log trip expense</span>
-            </Link>
+            {isMechanic ? (
+              <Link to="/dashboard/mechanic" className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:border-emerald-200">
+                <FaScrewdriverWrench className="text-emerald-600" />
+                <span className="font-semibold text-slate-950">Open work queue</span>
+              </Link>
+            ) : (
+              <Link to="/dashboard/expenses" className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:border-emerald-200">
+                <FaGasPump className="text-emerald-600" />
+                <span className="font-semibold text-slate-950">Log trip expense</span>
+              </Link>
+            )}
             <Link to="/dashboard/maintenance" className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:border-emerald-200">
               <FaCalendarCheck className="text-emerald-600" />
-              <span className="font-semibold text-slate-950">Review service schedule</span>
+              <span className="font-semibold text-slate-950">{isMechanic ? 'Update maintenance jobs' : 'Review service schedule'}</span>
             </Link>
           </div>
         </section>
@@ -306,6 +355,45 @@ export default function Dashboard() {
         </section>
       )}
 
+      {isMechanic && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt={profile.name} className="h-16 w-16 rounded-full border border-slate-200 object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-lg font-bold text-emerald-700">
+                  {(profile.name || user?.name || 'M').slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <h2 className="text-lg font-bold text-slate-950">Mechanic Profile Photo</h2>
+                <p className="mt-1 text-sm text-slate-500">Add a clear workspace photo for your mechanic profile.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {profile.avatar && (
+                <a
+                  href={profile.avatar}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  View photo
+                </a>
+              )}
+              <input id="mechanicPhotoUpload" type="file" accept="image/*" onChange={handleMechanicPhotoUpload} disabled={uploading} className="hidden" />
+              <label
+                htmlFor="mechanicPhotoUpload"
+                className="cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                {uploading ? 'Uploading...' : profile.avatar ? 'Replace photo' : 'Upload photo'}
+              </label>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -326,6 +414,26 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {isMechanic ? (
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-950">Priority Jobs</h2>
+              <Link to="/dashboard/mechanic" className="text-sm font-semibold text-emerald-700">Open queue</Link>
+            </div>
+            <div className="space-y-3">
+              {insights.openMaintenance.slice(0, 4).map((item) => (
+                <div key={item._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                  <div>
+                    <p className="font-semibold text-slate-950">{item.vehicle?.vehicleNumber || 'Fleet vehicle'}</p>
+                    <p className="text-sm text-slate-500">{item.type} - {item.scheduledDate ? new Date(item.scheduledDate).toLocaleDateString() : 'Date pending'}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{item.priority || 'Medium'}</span>
+                </div>
+              ))}
+              {insights.openMaintenance.length === 0 && <EmptyState message="No active maintenance jobs assigned." />}
+            </div>
+          </section>
+        ) : (
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-950">Recent Expenses</h2>
@@ -344,6 +452,7 @@ export default function Dashboard() {
             {activity.expenses.length === 0 && <EmptyState message="No expense entries found." />}
           </div>
         </section>
+        )}
       </div>
 
       {isEditing && (

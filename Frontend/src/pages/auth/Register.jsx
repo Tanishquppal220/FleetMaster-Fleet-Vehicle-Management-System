@@ -50,8 +50,8 @@ export default function Register() {
             <FaCarSide className="h-5 w-5" />
           </div>
           <p className="mt-4 text-sm font-semibold uppercase text-emerald-700">FleetMaster</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Create Driver Account</h1>
-          <p className="mt-2 text-sm text-slate-500">Create a driver or mechanic account. Admin is managed separately.</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Create Account</h1>
+          <p className="mt-2 text-sm text-slate-500">Create a driver or mechanic account.</p>
         </div>
 
         {error && <p className="mb-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}

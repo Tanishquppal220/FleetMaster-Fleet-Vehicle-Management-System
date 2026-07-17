@@ -9,9 +9,5 @@ export default function DashboardHome() {
     return <Navigate to="/dashboard/admin" replace />;
   }
 
-  if (user?.role === 'mechanic') {
-    return <Navigate to="/dashboard/mechanic" replace />;
-  }
-
   return <Dashboard />;
 }
