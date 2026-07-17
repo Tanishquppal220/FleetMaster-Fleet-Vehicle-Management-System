@@ -9,8 +9,11 @@ import {
   updateProfile
 } from '../Controllers/authController.js';
 import { protect } from '../Middlewares/auth.js';
+import { authLimiter } from '../Middlewares/rateLimiter.js';
 
 const router = express.Router();
+
+router.use(authLimiter);
 
 // Public Authentication Routes
 router.post('/register', register);

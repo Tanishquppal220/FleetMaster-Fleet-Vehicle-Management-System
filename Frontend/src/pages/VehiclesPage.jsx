@@ -339,11 +339,20 @@ export default function VehiclesPage() {
                   className="w-full rounded-lg bg-zinc-800 border border-zinc-700 p-2.5 text-sm focus:outline-none focus:border-emerald-500"
                 >
                   <option value="">Unassigned</option>
-                  {drivers.map((d) => (
-                    <option key={d._id} value={d.name?._id || d._id}>
-                      {d.name?.name || 'Unknown Driver'} ({d.licenseNumber})
-                    </option>
-                  ))}
+                  {drivers
+                    .filter((d) => {
+                      // Show drivers who have no vehicle assigned
+                      const isFree = !d.assignedVehicle;
+                      // When editing, also include the currently assigned driver so
+                      // their name stays visible even though they have a vehicle
+                      const isCurrentDriver = isEditing && (d.name?._id || d._id) === formData.assignedDriver;
+                      return isFree || isCurrentDriver;
+                    })
+                    .map((d) => (
+                      <option key={d._id} value={d.name?._id || d._id}>
+                        {d.name?.name || 'Unknown Driver'} ({d.licenseNumber})
+                      </option>
+                    ))}
                 </select>
               </div>
 

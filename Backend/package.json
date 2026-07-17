@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --env-file=.env server.js",
-    "dev": "nodemon server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
@@ -20,9 +20,10 @@
     "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.4",
-    "multer": "^2.2.0",
-    "node-fetch": "^3.3.2",
-    "nodemon": "^3.1.14",
-    "socket.io": "^4.8.3"
+    "express-rate-limit": "^7.5.0",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

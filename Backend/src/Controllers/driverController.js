@@ -53,14 +53,47 @@ export const updateDriverStatus = asyncHandler(async (req, res, next) => {
   if (licensePhoto !== undefined) driver.licensePhoto = licensePhoto;
 
   if (assignedVehicle !== undefined && req.user.role === 'admin') {
+    const prevVehicleId = driver.assignedVehicle?.toString() ?? null;
+    const newVehicleId  = assignedVehicle?.toString() ?? null;
+
     // If assigning a new vehicle, verify its existence
-    if (assignedVehicle) {
-      const vehicleExists = await Vehicle.findById(assignedVehicle);
+    if (newVehicleId) {
+      const vehicleExists = await Vehicle.findById(newVehicleId);
       if (!vehicleExists) {
         return res.status(404).json({ success: false, message: 'Vehicle not found' });
       }
     }
+
     driver.assignedVehicle = assignedVehicle;
+
+    // ── Bidirectional Driver↔Vehicle sync ────────────────────────────────────
+    if (prevVehicleId !== newVehicleId) {
+      // 1. Clear assignedDriver on the previously assigned vehicle (if any)
+      if (prevVehicleId) {
+        await Vehicle.findByIdAndUpdate(prevVehicleId, { assignedDriver: null });
+      }
+
+      // 2. Handle the target vehicle potentially already having a different driver
+      if (newVehicleId) {
+        // Edge case: the target vehicle may already have a DIFFERENT driver assigned.
+        // Find their Driver doc and clear their assignedVehicle so they aren't
+        // left pointing to a vehicle they've been bumped from.
+        const targetVehicle = await Vehicle.findById(newVehicleId);
+        if (targetVehicle?.assignedDriver) {
+          const displacedDriverUserId = targetVehicle.assignedDriver.toString();
+          if (displacedDriverUserId !== driver.name.toString()) {
+            await Driver.findOneAndUpdate(
+              { name: displacedDriverUserId },
+              { assignedVehicle: null }
+            );
+          }
+        }
+
+        // Now point the vehicle to this driver
+        await Vehicle.findByIdAndUpdate(newVehicleId, { assignedDriver: driver.name });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
   }
 
   await driver.save();

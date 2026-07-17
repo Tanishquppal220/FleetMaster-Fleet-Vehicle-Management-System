@@ -89,7 +89,7 @@ export const updateMaintenanceRecord = asyncHandler(async (req, res, next) => {
   const oldStatus = record.status;
   
   record = await Maintenance.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   });
 

@@ -1,4 +1,5 @@
 import Vehicle from '../Models/Vehicle.js';
+import Driver from '../Models/Driver.js';
 import User from '../Models/User.js'; 
 import { asyncHandler } from '../Middlewares/errorHandler.js';
 import { dispatchNotification } from '../Services/notificationService.js';
@@ -13,14 +14,36 @@ export const getVehicles = asyncHandler(async (req, res, next) => {
 // @desc    Create a vehicle
 // @route   POST /api/vehicles
 export const createVehicle = asyncHandler(async (req, res, next) => {
-  const { vehicleNumber } = req.body;
-  
+  const { vehicleNumber, assignedDriver: assignedDriverUserId } = req.body;
+
   const exists = await Vehicle.findOne({ vehicleNumber });
   if (exists) {
     return res.status(400).json({ success: false, message: 'Vehicle number already exists' });
   }
 
   const vehicle = await Vehicle.create(req.body);
+
+  // ── Bidirectional sync on creation ─────────────────────────────────────────
+  // If a driver was assigned at creation time, sync the Driver document too.
+  if (assignedDriverUserId) {
+    const incomingDriver = await Driver.findOne({ name: assignedDriverUserId });
+    if (incomingDriver) {
+      // If this driver was already on a different vehicle, clear that vehicle's assignedDriver
+      if (incomingDriver.assignedVehicle) {
+        const oldVehicleId = incomingDriver.assignedVehicle.toString();
+        if (oldVehicleId !== vehicle._id.toString()) {
+          await Vehicle.findByIdAndUpdate(oldVehicleId, { assignedDriver: null });
+        }
+      }
+      // Point the driver to the newly created vehicle
+      await Driver.findOneAndUpdate(
+        { name: assignedDriverUserId },
+        { assignedVehicle: vehicle._id }
+      );
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   res.status(201).json({ success: true, data: vehicle });
 });
 
@@ -73,8 +96,46 @@ export const updateVehicle = asyncHandler(async (req, res, next) => {
     }
   }
 
+  // ── Bidirectional Driver↔Vehicle sync ──────────────────────────────────────
+  // Only run sync when the assignedDriver field is explicitly present in the request
+  if ('assignedDriver' in req.body) {
+    const prevDriverUserId = vehicle.assignedDriver?.toString() ?? null;
+    const newDriverUserId  = req.body.assignedDriver?.toString()  ?? null;
+
+    if (prevDriverUserId !== newDriverUserId) {
+      // 1. Clear assignedVehicle on the previously assigned driver (if any)
+      if (prevDriverUserId) {
+        await Driver.findOneAndUpdate(
+          { name: prevDriverUserId },
+          { assignedVehicle: null }
+        );
+      }
+
+      // 2. Handle the incoming driver being assigned
+      if (newDriverUserId) {
+        // Edge case: the incoming driver may already be assigned to a DIFFERENT vehicle.
+        // Find their Driver doc and clear that old vehicle's assignedDriver first.
+        const incomingDriver = await Driver.findOne({ name: newDriverUserId });
+        if (incomingDriver?.assignedVehicle) {
+          const oldVehicleId = incomingDriver.assignedVehicle.toString();
+          if (oldVehicleId !== vehicle._id.toString()) {
+            // Clear this vehicle's assignedDriver so it no longer points to the moved driver
+            await Vehicle.findByIdAndUpdate(oldVehicleId, { assignedDriver: null });
+          }
+        }
+
+        // Now point the driver to this vehicle
+        await Driver.findOneAndUpdate(
+          { name: newDriverUserId },
+          { assignedVehicle: vehicle._id }
+        );
+      }
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   });
 
@@ -88,6 +149,14 @@ export const deleteVehicle = asyncHandler(async (req, res, next) => {
   
   if (!vehicle) {
     return res.status(404).json({ success: false, message: 'Vehicle not found' });
+  }
+
+  // Clear the deleted vehicle from its assigned driver's record (if any)
+  if (vehicle.assignedDriver) {
+    await Driver.findOneAndUpdate(
+      { name: vehicle.assignedDriver.toString() },
+      { assignedVehicle: null }
+    );
   }
 
   await Vehicle.findByIdAndDelete(req.params.id);

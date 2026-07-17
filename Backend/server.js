@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 
 import connectDB from './src/Config/db.js';
 import { errorHandler } from './src/Middlewares/errorHandler.js';
+import { globalLimiter } from './src/Middlewares/rateLimiter.js';
 
 import authRoutes from './src/Routes/authRoutes.js';
 import vehicleRoutes from './src/Routes/vehicleRoutes.js';
@@ -33,6 +34,8 @@ app.use(
 
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
+
+app.use(globalLimiter);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
