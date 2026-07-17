@@ -10,11 +10,14 @@ import {
   FaMagnifyingGlass,
   FaScrewdriverWrench,
   FaTriangleExclamation,
+  FaUserCheck,
+  FaUserXmark,
 } from 'react-icons/fa6';
 import driverService from '../services/driverService';
 import expenseService from '../services/expenseService';
 import maintenanceService from '../services/maintenanceService';
 import vehicleService from '../services/vehicleService';
+import adminService from '../services/adminService';
 import useAuth from '../hooks/useAuth';
 
 const currency = new Intl.NumberFormat('en-US', {
@@ -227,6 +230,8 @@ export default function AdminDashboard() {
     loading: true,
     error: '',
   });
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [approvingId, setApprovingId] = useState(null);
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -250,6 +255,42 @@ export default function AdminDashboard() {
 
     loadAdminData();
   }, []);
+
+  useEffect(() => {
+    const loadPending = async () => {
+      try {
+        const users = await adminService.getPendingUsers();
+        setPendingUsers(users);
+      } catch {
+        // silent — admin-only endpoint
+      }
+    };
+    loadPending();
+  }, []);
+
+  const handleApprove = async (id) => {
+    setApprovingId(id);
+    try {
+      await adminService.approveUser(id);
+      setPendingUsers((prev) => prev.filter((u) => u._id !== id));
+    } catch {
+      // handle silently
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (id) => {
+    setApprovingId(id);
+    try {
+      await adminService.rejectUser(id);
+      setPendingUsers((prev) => prev.filter((u) => u._id !== id));
+    } catch {
+      // handle silently
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const insights = useMemo(() => {
     const availableVehicles = state.vehicles.filter((vehicle) => vehicle.availability).length;
@@ -397,40 +438,52 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-slate-950">Maintenance Schedule</h2>
-            <Link to="/dashboard/maintenance" className="text-xs font-semibold text-emerald-700">View all</Link>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-950">Pending Approvals</h2>
+            {pendingUsers.length > 0 && (
+              <StatusBadge tone="amber">{pendingUsers.length} pending</StatusBadge>
+            )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-3 py-2">Vehicle ID</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Due Date</th>
-                  <th className="px-3 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {insights.maintenanceSchedule.map((record) => (
-                  <tr key={record._id}>
-                    <td className="px-3 py-3 font-semibold text-slate-950">{record.vehicle?.vehicleNumber || 'Unassigned'}</td>
-                    <td className="px-3 py-3 text-slate-600">{record.type}</td>
-                    <td className="px-3 py-3 text-slate-600">{record.scheduledDate ? new Date(record.scheduledDate).toLocaleDateString() : 'Not set'}</td>
-                    <td className="px-3 py-3">
-                      <StatusBadge tone={record.priority === 'High' || record.priority === 'Critical' ? 'rose' : 'amber'}>
-                        {record.status}
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))}
-                {insights.maintenanceSchedule.length === 0 && (
-                  <tr>
-                    <td colSpan="4" className="py-10 text-center text-sm text-slate-500">No maintenance work is pending.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="divide-y divide-slate-100">
+            {pendingUsers.map((pending) => (
+              <div key={pending._id} className="flex items-center justify-between gap-3 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {pending.avatar ? (
+                    <img src={pending.avatar} alt={pending.name} className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                      {pending.name?.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-950">{pending.name}</p>
+                    <p className="truncate text-xs text-slate-500">{pending.email}</p>
+                    <p className="text-xs text-slate-400">Joined {new Date(pending.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleApprove(pending._id)}
+                    disabled={approvingId === pending._id}
+                    className="rounded-lg bg-emerald-600 p-2 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                    title="Approve"
+                  >
+                    <FaUserCheck className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => handleReject(pending._id)}
+                    disabled={approvingId === pending._id}
+                    className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-rose-300 hover:text-rose-600 disabled:opacity-50"
+                    title="Reject"
+                  >
+                    <FaUserXmark className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {pendingUsers.length === 0 && (
+              <p className="py-8 text-center text-sm text-slate-500">No users pending approval.</p>
+            )}
           </div>
         </section>
 

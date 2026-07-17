@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import MechanicDashboard from './pages/MechanicDashboard';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import PendingApproval from './pages/auth/PendingApproval';
 import VehiclesPage from './pages/VehiclesPage';
 import DriversPage from './pages/DriversPage';
 import MaintenancePage from './pages/MaintenancePage';
@@ -19,6 +20,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/pending-approval" element={<PendingApproval />} />
           
           {/* Dashboard Group */}
           <Route path="/dashboard" element={

@@ -4,6 +4,8 @@ import User from '../Models/User.js';
 import Driver from '../Models/Driver.js';
 import { generateToken, generateRefreshToken } from '../Utils/genreateTokens.js'; 
 
+const GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo'; 
+
 // @desc    Register a new user (and Driver profile if role is 'Driver')
 // @route   POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
@@ -221,5 +223,142 @@ export const updateProfile = asyncHandler(async (req, res) => {
       address: user.address,
       avatar: user.avatar,
     }
+  });
+});
+
+// @desc    Verify Google ID token and login/register user
+// @route   POST /api/auth/google
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ success: false, message: 'Google ID token is required' });
+  }
+
+  let payload;
+  try {
+    const response = await fetch(`${GOOGLE_TOKENINFO_URL}?id_token=${idToken}`);
+    if (!response.ok) {
+      return res.status(401).json({ success: false, message: 'Invalid Google token' });
+    }
+    payload = await response.json();
+  } catch {
+    return res.status(501).json({ success: false, message: 'Failed to verify Google token' });
+  }
+
+  const { sub: googleId, email, name, picture } = payload;
+
+  if (!email || !googleId) {
+    return res.status(400).json({ success: false, message: 'Invalid Google token payload' });
+  }
+
+  const normalizedEmail = email.toLowerCase();
+
+  let user = await User.findOne({ email: normalizedEmail });
+
+  if (user) {
+    if (!user.googleId) {
+      user.googleId = googleId;
+      if (picture && !user.avatar) user.avatar = picture;
+      await user.save();
+    }
+
+    if (user.status === 'inactive') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is pending admin approval',
+        code: 'PENDING_APPROVAL',
+      });
+    }
+
+    const accessToken = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+        },
+        accessToken,
+        refreshToken,
+      },
+    });
+  }
+
+  user = await User.create({
+    name: name || 'Google User',
+    email: normalizedEmail,
+    googleId,
+    avatar: picture || '',
+    role: 'driver',
+    status: 'inactive',
+  });
+
+  return res.status(403).json({
+    success: true,
+    message: 'Your account has been created and is pending admin approval',
+    code: 'PENDING_APPROVAL',
+  });
+});
+
+// @desc    Get all users pending admin approval
+// @route   GET /api/auth/pending-users
+export const getPendingUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({ status: 'inactive' }).select('name email avatar googleId createdAt');
+
+  return res.status(200).json({
+    success: true,
+    data: users,
+  });
+});
+
+// @desc    Approve a pending user
+// @route   PUT /api/auth/approve-user/:id
+export const approveUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  if (user.status !== 'inactive') {
+    return res.status(400).json({ success: false, message: 'User is not pending approval' });
+  }
+
+  user.status = 'active';
+  await user.save();
+
+  return res.status(200).json({
+    success: true,
+    message: `User ${user.name} has been approved`,
+  });
+});
+
+// @desc    Reject and delete a pending user
+// @route   DELETE /api/auth/reject-user/:id
+export const rejectUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  if (user.status !== 'inactive') {
+    return res.status(400).json({ success: false, message: 'User is not pending approval' });
+  }
+
+  await User.findByIdAndDelete(user._id);
+
+  return res.status(200).json({
+    success: true,
+    message: `User ${user.name} has been rejected and removed`,
   });
 });

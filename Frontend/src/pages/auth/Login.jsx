@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaCarSide, FaEnvelope, FaLock } from 'react-icons/fa6';
 import useAuth from '../../hooks/useAuth';
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 export default function Login() {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -25,6 +27,38 @@ export default function Login() {
     }
   };
 
+  const handleGoogleResponse = async (response) => {
+    setError('');
+    try {
+      const res = await googleLogin(response.credential);
+      if (res.data?.user) {
+        navigate(res.data.user.role === 'admin' ? '/dashboard/admin' : '/dashboard');
+      }
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.code === 'PENDING_APPROVAL') {
+        navigate('/pending-approval');
+      } else {
+        setError(data?.message || 'Google sign-in failed');
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !window.google) return;
+
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleResponse,
+    });
+
+    window.google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'outline', size: 'large', width: '100%', text: 'continue_with' }
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8 text-slate-950">
       <main className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
@@ -38,6 +72,17 @@ export default function Login() {
         </div>
 
         {error && <p className="mb-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+
+        <div id="google-signin-btn" className="mb-5 flex justify-center" />
+
+        <div className="relative mb-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-white px-3 text-slate-400">or sign in with email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
