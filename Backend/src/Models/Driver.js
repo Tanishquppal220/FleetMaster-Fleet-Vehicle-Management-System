@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 
 const driverSchema = new mongoose.Schema(
   {
-    name: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // One User account can only have one Driver profile
+      unique: true,
     },
     licenseNumber: {
       type: String,

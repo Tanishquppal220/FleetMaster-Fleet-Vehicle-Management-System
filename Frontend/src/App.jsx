@@ -11,6 +11,7 @@ import VehiclesPage from './pages/VehiclesPage';
 import DriversPage from './pages/DriversPage';
 import MaintenancePage from './pages/MaintenancePage';
 import ExpensesPage from './pages/ExpensesPage';
+import UsersPage from './pages/UsersPage';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="drivers" element={<DriversPage />} />
             <Route path="maintenance" element={<MaintenancePage />} />
             <Route path="expenses" element={<ExpensesPage />} />
+            <Route path="users" element={<UsersPage />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/login" replace />} />

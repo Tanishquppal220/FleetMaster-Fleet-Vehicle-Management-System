@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FaBell,
   FaCarSide,
   FaChartLine,
   FaCircleArrowUp,
@@ -144,9 +143,9 @@ function FleetReadinessPanel({ vehicles, lowFuelCount }) {
 function DriverScoreboard({ drivers }) {
   const ranked = drivers.slice(0, 6).map((driver, index) => ({
     id: driver._id,
-    name: driver.name?.name || 'Driver',
-    email: driver.name?.email || 'No email',
-    avatar: driver.name?.avatar,
+    name: driver.user?.name || 'Driver',
+    email: driver.user?.email || 'No email',
+    avatar: driver.user?.avatar,
     score: Math.max(78, 98 - index * 3 + (driver.status === 'Available' ? 1 : 0)),
   }));
 
@@ -289,11 +288,11 @@ export default function AdminDashboard() {
     });
 
     state.drivers.forEach((driver) => {
-      if (contains(driver.name?.name, driver.name?.email, driver.licenseNumber, driver.status, driver.assignedVehicle?.vehicleNumber)) {
+      if (contains(driver.user?.name, driver.user?.email, driver.licenseNumber, driver.status, driver.assignedVehicle?.vehicleNumber)) {
         results.push({
           id: `driver-${driver._id}`,
           type: 'Driver',
-          title: driver.name?.name || 'Driver',
+          title: driver.user?.name || 'Driver',
           detail: `${driver.licenseNumber} • ${driver.status}`,
           href: '/dashboard/drivers',
         });
@@ -313,7 +312,7 @@ export default function AdminDashboard() {
     });
 
     state.expenses.forEach((expense) => {
-      if (contains(expense.expenseId, expense.vehicle?.vehicleNumber, expense.driver?.name?.name, expense.driver?.name?.email)) {
+      if (contains(expense.expenseId, expense.vehicle?.vehicleNumber, expense.driver?.user?.name, expense.driver?.user?.email)) {
         results.push({
           id: `expense-${expense._id}`,
           type: 'Expense',
@@ -339,9 +338,6 @@ export default function AdminDashboard() {
           <p className="mt-1 text-sm text-slate-500">Welcome back, {user?.name}. Here is your fleet command view.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm" title="Notifications">
-            <FaBell />
-          </button>
           <Link to="/dashboard/maintenance" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
             Schedule Maintenance
           </Link>

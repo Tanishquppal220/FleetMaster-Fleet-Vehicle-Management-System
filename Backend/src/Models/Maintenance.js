@@ -40,7 +40,12 @@ const MaintenanceSchema = new mongoose.Schema(
     },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // References the 'mechanic' or 'admin' user who performed the action
+      ref: 'User',
+      default: null,
+    },
+    assignedMechanic: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
   },

@@ -193,7 +193,7 @@ export default function ExpensesPage() {
                     {e.vehicle ? e.vehicle.vehicleNumber : <span className="text-zinc-500 italic">Deleted Vehicle</span>}
                   </td>
                   <td className="p-4 text-zinc-300">
-                    {e.driver?.name?.name || 'Unknown Driver'}
+                    {e.driver?.user?.name || 'Unknown Driver'}
                   </td>
                   <td className="p-4">{e.fuelLiters} L</td>
                   <td className="p-4">${e.fuelCost?.toLocaleString()}</td>
@@ -292,7 +292,7 @@ export default function ExpensesPage() {
                       <option value="">Choose Driver</option>
                       {drivers.map((d) => (
                         <option key={d._id} value={d._id}>
-                          {d.name?.name || 'Unknown Driver'}
+                          {d.user?.name || 'Unknown Driver'}
                         </option>
                       ))}
                     </select>

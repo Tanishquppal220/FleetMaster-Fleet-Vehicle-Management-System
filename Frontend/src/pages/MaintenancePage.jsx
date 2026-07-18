@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import maintenanceService from '../services/maintenanceService';
 import vehicleService from '../services/vehicleService';
+import api from '../services/api';
 import useAuth from '../hooks/useAuth';
 
 export default function MaintenancePage() {
   const { user } = useAuth();
   const [records, setRecords] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [mechanics, setMechanics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -23,6 +25,7 @@ export default function MaintenancePage() {
     description: '',
     priority: 'Medium',
     status: 'Scheduled',
+    assignedMechanic: '',
   });
 
   const loadData = async () => {
@@ -35,6 +38,10 @@ export default function MaintenancePage() {
       if (user?.role === 'admin' || user?.role === 'mechanic') {
         const vehicleList = await vehicleService.getVehicles();
         setVehicles(vehicleList);
+      }
+      if (user?.role === 'admin') {
+        const mechanicList = await api.get('/auth/mechanics');
+        setMechanics(mechanicList.data.data);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load maintenance records');
@@ -60,6 +67,7 @@ export default function MaintenancePage() {
       description: '',
       priority: 'Medium',
       status: 'Scheduled',
+      assignedMechanic: '',
     });
     setIsEditing(false);
     setShowModal(true);
@@ -74,6 +82,7 @@ export default function MaintenancePage() {
       description: r.description || '',
       priority: r.priority || 'Medium',
       status: r.status || 'Scheduled',
+      assignedMechanic: r.assignedMechanic ? r.assignedMechanic._id : '',
     });
     setCurrentId(r._id);
     setIsEditing(true);
@@ -149,7 +158,7 @@ export default function MaintenancePage() {
                 <th className="p-4">Estimated Cost</th>
                 <th className="p-4">Priority</th>
                 <th className="p-4">Status</th>
-                <th className="p-4">Performed By</th>
+                <th className="p-4">Assigned To</th>
                 {(user?.role === 'admin' || user?.role === 'mechanic') && <th className="p-4 text-right">Actions</th>}
               </tr>
             </thead>
@@ -189,7 +198,7 @@ export default function MaintenancePage() {
                     </span>
                   </td>
                   <td className="p-4 text-zinc-400">
-                    {r.performedBy ? r.performedBy.name : <span className="text-zinc-500 italic">Unassigned</span>}
+                    {r.assignedMechanic ? r.assignedMechanic.name : <span className="text-zinc-500 italic">Unassigned</span>}
                   </td>
                   {(user?.role === 'admin' || user?.role === 'mechanic') && (
                     <td className="p-4 text-right space-x-2">
@@ -213,7 +222,7 @@ export default function MaintenancePage() {
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan={user?.role === 'admin' || user?.role === 'mechanic' ? 8 : 7} className="p-8 text-center text-zinc-500 italic">
+                  <td colSpan={user?.role === 'admin' || user?.role === 'mechanic' ? 9 : 8} className="p-8 text-center text-zinc-500 italic">
                     No scheduled maintenance logs found.
                   </td>
                 </tr>
@@ -270,6 +279,25 @@ export default function MaintenancePage() {
                   </select>
                 </div>
               </div>
+
+              {user?.role === 'admin' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assign Mechanic</label>
+                  <select
+                    name="assignedMechanic"
+                    value={formData.assignedMechanic}
+                    onChange={handleChange}
+                    className="w-full rounded-lg bg-zinc-800 border border-zinc-700 p-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {mechanics.map((m) => (
+                      <option key={m._id} value={m._id}>
+                        {m.name} ({m.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -58,11 +58,11 @@ const driverProfiles = [
 ];
 
 const vehicleSeed = [
-  { vehicleNumber: 'PB-10-FM-1001', type: 'Box Truck', capacity: 4200, fuelStatus: 82, maintenanceStatus: 'Satisfactory', availability: true },
-  { vehicleNumber: 'PB-10-FM-1002', type: 'Cargo Van', capacity: 1800, fuelStatus: 38, maintenanceStatus: 'Service Due', availability: true },
-  { vehicleNumber: 'UP-16-FM-2001', type: 'Semi-Truck', capacity: 9500, fuelStatus: 64, maintenanceStatus: 'Satisfactory', availability: false },
-  { vehicleNumber: 'HR-26-FM-3001', type: 'Flatbed', capacity: 7200, fuelStatus: 18, maintenanceStatus: 'Under Repair', availability: false },
-  { vehicleNumber: 'DL-01-FM-4001', type: 'Box Truck', capacity: 5100, fuelStatus: 91, maintenanceStatus: 'Satisfactory', availability: true },
+  { vehicleNumber: 'PB-10-FM-1001', type: 'Box Truck', capacity: 4200, fuelStatus: 82, maintenanceStatus: 'Satisfactory' },
+  { vehicleNumber: 'PB-10-FM-1002', type: 'Cargo Van', capacity: 1800, fuelStatus: 38, maintenanceStatus: 'Service Due' },
+  { vehicleNumber: 'UP-16-FM-2001', type: 'Semi-Truck', capacity: 9500, fuelStatus: 64, maintenanceStatus: 'Satisfactory' },
+  { vehicleNumber: 'HR-26-FM-3001', type: 'Flatbed', capacity: 7200, fuelStatus: 18, maintenanceStatus: 'Under Repair' },
+  { vehicleNumber: 'DL-01-FM-4001', type: 'Box Truck', capacity: 5100, fuelStatus: 91, maintenanceStatus: 'Satisfactory' },
 ];
 
 const maintenanceSeed = [
@@ -118,9 +118,9 @@ const seed = async () => {
   for (const profile of driverProfiles) {
     const user = usersByEmail[profile.email];
     const driver = await Driver.findOneAndUpdate(
-      { name: user._id },
+      { user: user._id },
       {
-        name: user._id,
+        user: user._id,
         licenseNumber: profile.licenseNumber,
         experience: profile.experience,
         status: profile.status,

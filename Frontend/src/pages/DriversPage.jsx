@@ -102,9 +102,9 @@ export default function DriversPage() {
     if (!query) return true;
 
     return [
-      driver.name?.name,
-      driver.name?.email,
-      driver.name?.phone,
+      driver.user?.name,
+      driver.user?.email,
+      driver.user?.phone,
       driver.licenseNumber,
       driver.experience,
       driver.status,
@@ -158,21 +158,21 @@ export default function DriversPage() {
               {filteredDrivers.map((d) => (
                 <tr key={d._id} className="hover:bg-zinc-900/30 transition-colors">
                   <td className="p-4">
-                    {d.name?.avatar ? (
+                    {d.user?.avatar ? (
                       <img
-                        src={d.name.avatar}
+                        src={d.user.avatar}
                         alt="avatar"
                         className="h-10 w-10 rounded-full object-cover border border-zinc-800"
                       />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-emerald-950/40 border border-emerald-900 flex items-center justify-center font-bold text-black uppercase">
-                        {(d.name?.name || 'D').slice(0, 2)}
+                        {(d.user?.name || 'D').slice(0, 2)}
                       </div>
                     )}
                   </td>
-                  <td className="p-4 font-semibold text-zinc-200">{d.name?.name || 'Unknown User'}</td>
-                  <td className="p-4 text-zinc-400">{d.name?.email || 'N/A'}</td>
-                  <td className="p-4 text-zinc-400">{d.name?.phone || 'N/A'}</td>
+                  <td className="p-4 font-semibold text-zinc-200">{d.user?.name || 'Unknown User'}</td>
+                  <td className="p-4 text-zinc-400">{d.user?.email || 'N/A'}</td>
+                  <td className="p-4 text-zinc-400">{d.user?.phone || 'N/A'}</td>
                   <td className="p-4 font-mono text-zinc-300">{d.licenseNumber}</td>
                   <td className="p-4">
                     {d.licensePhoto ? (

@@ -7,8 +7,8 @@ import { generateToken, generateRefreshToken } from '../Utils/genreateTokens.js'
 // @desc    Register a new user (and Driver profile if role is 'Driver')
 // @route   POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, phone, licenseNumber, experience } = req.body;
-  const requestedRole = 'driver';
+  const { name, email, password, phone, licenseNumber, experience, role } = req.body;
+  const requestedRole = ['driver', 'mechanic'].includes(role) ? role : 'driver';
 
   const userExists = await User.findOne({ email });
   if (userExists) {
@@ -30,7 +30,7 @@ export const register = asyncHandler(async (req, res) => {
     }
     try {
       await Driver.create({
-        name: user._id,
+        user: user._id,
         licenseNumber,
         experience: experience || 0,
         status: 'Available',
@@ -46,6 +46,9 @@ export const register = asyncHandler(async (req, res) => {
   const refreshToken = generateRefreshToken(user._id);
 
   user.refreshTokens.push(refreshToken);
+  if (user.refreshTokens.length > 5) {
+    user.refreshTokens = user.refreshTokens.slice(-5);
+  }
   await user.save();
 
   return res.status(201).json({
@@ -93,6 +96,9 @@ export const login = asyncHandler(async (req, res) => {
   const refreshToken = generateRefreshToken(user._id);
 
   user.refreshTokens.push(refreshToken);
+  if (user.refreshTokens.length > 5) {
+    user.refreshTokens = user.refreshTokens.slice(-5);
+  }
   await user.save();
 
   return res.status(200).json({
@@ -170,6 +176,107 @@ export const refresh = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get all mechanics (admin only)
+// @route   GET /api/auth/mechanics
+// @access  Private (Admin)
+export const getMechanics = asyncHandler(async (req, res) => {
+  const mechanics = await User.find({ role: 'mechanic' }).select('name email');
+
+  res.status(200).json({ success: true, count: mechanics.length, data: mechanics });
+});
+
+// @desc    Get all users (admin only)
+// @route   GET /api/auth/users
+// @access  Private (Admin)
+export const getUsers = asyncHandler(async (req, res) => {
+  const users = await User.find().select('-refreshTokens').sort({ createdAt: -1 });
+
+  res.status(200).json({ success: true, count: users.length, data: users });
+});
+
+// @desc    Create a user (admin only)
+// @route   POST /api/auth/users
+// @access  Private (Admin)
+export const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role, phone } = req.body;
+
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
+  }
+
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    return res.status(400).json({ success: false, message: 'User already exists with this email' });
+  }
+
+  const user = await User.create({ name, email, password, role, phone });
+
+  if (user.role === 'driver') {
+    try {
+      await Driver.create({ user: user._id, licenseNumber: '', experience: 0, status: 'Available' });
+    } catch (err) {
+      await User.findByIdAndDelete(user._id);
+      return res.status(400).json({ success: false, message: `Failed to create driver profile: ${err.message}` });
+    }
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'User created successfully',
+    data: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status },
+  });
+});
+
+// @desc    Update a user (admin only)
+// @route   PUT /api/auth/users/:id
+// @access  Private (Admin)
+export const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  const { name, email, role, phone, status } = req.body;
+
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (role) user.role = role;
+  if (phone) user.phone = phone;
+  if (status) user.status = status;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'User updated successfully',
+    data: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone, status: user.status },
+  });
+});
+
+// @desc    Delete a user (admin only)
+// @route   DELETE /api/auth/users/:id
+// @access  Private (Admin)
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  if (user.role === 'admin') {
+    return res.status(400).json({ success: false, message: 'Cannot delete admin users' });
+  }
+
+  if (user.role === 'driver') {
+    await Driver.findOneAndDelete({ user: user._id });
+  }
+
+  await User.findByIdAndDelete(user._id);
+
+  res.status(200).json({ success: true, message: 'User deleted successfully' });
+});
+
 // @desc    Get current user profile
 // @route   GET /api/auth/me
 export const getMe = asyncHandler(async (req, res) => {
@@ -181,7 +288,7 @@ export const getMe = asyncHandler(async (req, res) => {
   let profile = { user };
 
   if (user.role === 'driver') {
-    const driverProfile = await Driver.findOne({ name: user._id });
+    const driverProfile = await Driver.findOne({ user: user._id });
     profile.driverProfile = driverProfile;
   }
 

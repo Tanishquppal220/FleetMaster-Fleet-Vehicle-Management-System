@@ -8,11 +8,6 @@ const ExpenseSchema = new mongoose.Schema(
       unique: true, 
       trim: true 
     },
-    trip: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Trip',
-      required: false,
-    },
     receiptUrl: {
       type: String,
       default: '',

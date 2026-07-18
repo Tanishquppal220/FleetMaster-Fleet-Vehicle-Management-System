@@ -1,13 +1,22 @@
+import mongoose from 'mongoose';
 import Vehicle from '../Models/Vehicle.js';
 import Driver from '../Models/Driver.js';
-import User from '../Models/User.js'; 
+import User from '../Models/User.js';
+import Maintenance from '../Models/Maintenance.js';
+import Expense from '../Models/Expense.js';
 import { asyncHandler } from '../Middlewares/errorHandler.js';
-import { dispatchNotification } from '../Services/notificationService.js';
+import { syncVehicleDriverAssignment } from '../Services/vehicleDriverSync.js';
 
-// @desc    Get all vehicles
+// @desc    Get all vehicles (role-filtered)
 // @route   GET /api/vehicles
 export const getVehicles = asyncHandler(async (req, res, next) => {
-  const vehicles = await Vehicle.find().populate('assignedDriver', 'name email');
+  const filter = {};
+
+  if (req.user.role === 'driver') {
+    filter.assignedDriver = req.user._id;
+  }
+
+  const vehicles = await Vehicle.find(filter).populate('assignedDriver', 'name email');
   res.status(200).json({ success: true, count: vehicles.length, data: vehicles });
 });
 
@@ -21,51 +30,52 @@ export const createVehicle = asyncHandler(async (req, res, next) => {
     return res.status(400).json({ success: false, message: 'Vehicle number already exists' });
   }
 
-  const { type, capacity, fuelStatus, maintenanceStatus, availability } = req.body;
-  const vehicle = await Vehicle.create({
-    vehicleNumber,
-    type,
-    capacity,
-    fuelStatus,
-    maintenanceStatus,
-    availability,
-    assignedDriver: assignedDriverUserId || null,
+  const { type, capacity, fuelStatus, maintenanceStatus } = req.body;
+
+  const session = await mongoose.startSession();
+  let vehicle;
+
+  await session.withTransaction(async () => {
+    const created = await Vehicle.create([{
+      vehicleNumber,
+      type,
+      capacity,
+      fuelStatus,
+      maintenanceStatus,
+      assignedDriver: assignedDriverUserId || null,
+    }], { session });
+
+    vehicle = created[0];
+
+    if (assignedDriverUserId) {
+      await syncVehicleDriverAssignment(session, vehicle._id, assignedDriverUserId);
+    }
   });
 
-  // ── Bidirectional sync on creation ─────────────────────────────────────────
-  // If a driver was assigned at creation time, sync the Driver document too.
-  if (assignedDriverUserId) {
-    const incomingDriver = await Driver.findOne({ name: assignedDriverUserId });
-    if (incomingDriver) {
-      // If this driver was already on a different vehicle, clear that vehicle's assignedDriver
-      if (incomingDriver.assignedVehicle) {
-        const oldVehicleId = incomingDriver.assignedVehicle.toString();
-        if (oldVehicleId !== vehicle._id.toString()) {
-          await Vehicle.findByIdAndUpdate(oldVehicleId, { assignedDriver: null });
-        }
-      }
-      // Point the driver to the newly created vehicle
-      await Driver.findOneAndUpdate(
-        { name: assignedDriverUserId },
-        { assignedVehicle: vehicle._id }
-      );
-    }
-  }
-  // ──────────────────────────────────────────────────────────────────────────
-
+  session.endSession();
   res.status(201).json({ success: true, data: vehicle });
 });
 
-// @desc    Update vehicle details (including assigning drivers & triggering maintenance alerts)
+// @desc    Update vehicle details
 // @route   PUT /api/vehicles/:id
 export const updateVehicle = asyncHandler(async (req, res, next) => {
   let vehicle = await Vehicle.findById(req.params.id);
-  
+
   if (!vehicle) {
     return res.status(404).json({ success: false, message: 'Vehicle not found' });
   }
 
-  // If assigning a driver, verify the user exists
+  if (req.user.role === 'mechanic') {
+    const mechanicAllowed = ['maintenanceStatus', 'availability'];
+    const disallowed = Object.keys(req.body).filter((k) => !mechanicAllowed.includes(k));
+    if (disallowed.length > 0) {
+      return res.status(403).json({
+        success: false,
+        message: `Mechanics can only update maintenance fields. Rejected: ${disallowed.join(', ')}`,
+      });
+    }
+  }
+
   if (req.body.assignedDriver) {
     const user = await User.findById(req.body.assignedDriver);
     if (!user) {
@@ -75,104 +85,63 @@ export const updateVehicle = asyncHandler(async (req, res, next) => {
 
   const { maintenanceStatus } = req.body;
 
-  // Handle Maintenance Status Lifecycles & Alerts mimicking the repo
   if (maintenanceStatus && maintenanceStatus !== vehicle.maintenanceStatus) {
-    if (maintenanceStatus === 'Under Repair' || maintenanceStatus === 'Service Due') {
-      
-      // If the vehicle is going under repair, unassign the driver and send them an alert
-      if (maintenanceStatus === 'Under Repair' && vehicle.assignedDriver) {
-        const driverId = vehicle.assignedDriver;
-        
-        // Clear driver from the vehicle update payload
-        req.body.assignedDriver = null;
-        
-        await dispatchNotification({
-          recipient: driverId,
-          title: 'Vehicle Maintenance Recall',
-          message: `Your assigned vehicle ${vehicle.vehicleNumber} is recalled for repairs. You are now unassigned.`,
-          type: 'MAINTENANCE_DUE'
-        });
-      }
+    if (maintenanceStatus === 'Under Repair' && vehicle.assignedDriver) {
+      req.body.assignedDriver = null;
+    }
+  }
 
-      // Notify administrators about the required maintenance
-      await dispatchNotification({
-        recipientRole: 'admin',
-        title: 'Vehicle Maintenance Needed',
-        message: `Vehicle ${vehicle.vehicleNumber} has maintenance status: ${maintenanceStatus}.`,
-        type: 'MAINTENANCE_DUE',
-        metadata: { vehicleId: vehicle._id }
+  const session = await mongoose.startSession();
+
+  await session.withTransaction(async () => {
+    if ('assignedDriver' in req.body) {
+      await syncVehicleDriverAssignment(session, req.params.id, req.body.assignedDriver);
+    }
+
+    const allowedFields = {};
+    for (const key of ['vehicleNumber', 'type', 'capacity', 'fuelStatus', 'maintenanceStatus', 'assignedDriver']) {
+      if (key in req.body) allowedFields[key] = req.body[key];
+    }
+
+    if (Object.keys(allowedFields).length > 0) {
+      await Vehicle.findByIdAndUpdate(req.params.id, allowedFields, {
+        session,
+        runValidators: true,
       });
     }
-  }
-
-  // ── Bidirectional Driver↔Vehicle sync ──────────────────────────────────────
-  // Only run sync when the assignedDriver field is explicitly present in the request
-  if ('assignedDriver' in req.body) {
-    const prevDriverUserId = vehicle.assignedDriver?.toString() ?? null;
-    const newDriverUserId  = req.body.assignedDriver?.toString()  ?? null;
-
-    if (prevDriverUserId !== newDriverUserId) {
-      // 1. Clear assignedVehicle on the previously assigned driver (if any)
-      if (prevDriverUserId) {
-        await Driver.findOneAndUpdate(
-          { name: prevDriverUserId },
-          { assignedVehicle: null }
-        );
-      }
-
-      // 2. Handle the incoming driver being assigned
-      if (newDriverUserId) {
-        // Edge case: the incoming driver may already be assigned to a DIFFERENT vehicle.
-        // Find their Driver doc and clear that old vehicle's assignedDriver first.
-        const incomingDriver = await Driver.findOne({ name: newDriverUserId });
-        if (incomingDriver?.assignedVehicle) {
-          const oldVehicleId = incomingDriver.assignedVehicle.toString();
-          if (oldVehicleId !== vehicle._id.toString()) {
-            // Clear this vehicle's assignedDriver so it no longer points to the moved driver
-            await Vehicle.findByIdAndUpdate(oldVehicleId, { assignedDriver: null });
-          }
-        }
-
-        // Now point the driver to this vehicle
-        await Driver.findOneAndUpdate(
-          { name: newDriverUserId },
-          { assignedVehicle: vehicle._id }
-        );
-      }
-    }
-  }
-  // ──────────────────────────────────────────────────────────────────────────
-
-  const allowedFields = {};
-  for (const key of ['vehicleNumber', 'type', 'capacity', 'fuelStatus', 'maintenanceStatus', 'availability', 'assignedDriver']) {
-    if (key in req.body) allowedFields[key] = req.body[key];
-  }
-
-  vehicle = await Vehicle.findByIdAndUpdate(req.params.id, allowedFields, {
-    returnDocument: 'after',
-    runValidators: true,
   });
 
+  session.endSession();
+
+  vehicle = await Vehicle.findById(req.params.id);
   res.status(200).json({ success: true, data: vehicle });
 });
 
-// @desc    Delete vehicle
+// @desc    Delete vehicle (with cascade cleanup)
 // @route   DELETE /api/vehicles/:id
 export const deleteVehicle = asyncHandler(async (req, res, next) => {
   const vehicle = await Vehicle.findById(req.params.id);
-  
+
   if (!vehicle) {
     return res.status(404).json({ success: false, message: 'Vehicle not found' });
   }
 
-  // Clear the deleted vehicle from its assigned driver's record (if any)
-  if (vehicle.assignedDriver) {
-    await Driver.findOneAndUpdate(
-      { name: vehicle.assignedDriver.toString() },
-      { assignedVehicle: null }
-    );
-  }
+  const session = await mongoose.startSession();
 
-  await Vehicle.findByIdAndDelete(req.params.id);
+  await session.withTransaction(async () => {
+    if (vehicle.assignedDriver) {
+      await Driver.findOneAndUpdate(
+        { user: vehicle.assignedDriver.toString() },
+        { assignedVehicle: null },
+        { session }
+      );
+    }
+
+    await Maintenance.deleteMany({ vehicle: vehicle._id }, { session });
+    await Expense.deleteMany({ vehicle: vehicle._id }, { session });
+    await Vehicle.findByIdAndDelete(vehicle._id, { session });
+  });
+
+  session.endSession();
   res.status(200).json({ success: true, message: 'Vehicle deleted' });
 });

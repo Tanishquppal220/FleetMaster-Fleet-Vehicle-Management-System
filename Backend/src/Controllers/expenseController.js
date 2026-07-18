@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Expense from '../Models/Expense.js';
 import Vehicle from '../Models/Vehicle.js';
 import Driver from '../Models/Driver.js';
@@ -7,16 +8,14 @@ import { asyncHandler } from '../Middlewares/errorHandler.js';
 // @route   GET /api/expenses
 // @access  Private
 export const getExpenses = asyncHandler(async (req, res, next) => {
-  const { vehicle, driver, trip } = req.query;
+  const { vehicle, driver } = req.query;
   const filter = {};
 
   if (vehicle) filter.vehicle = vehicle;
   if (driver) filter.driver = driver;
-  if (trip) filter.trip = trip;
 
-  // If driver user logs in, they should only see their own expenses
   if (req.user.role === 'driver') {
-    const driverProfile = await Driver.findOne({ name: req.user._id });
+    const driverProfile = await Driver.findOne({ user: req.user._id });
     if (driverProfile) {
       filter.driver = driverProfile._id;
     } else {
@@ -28,7 +27,7 @@ export const getExpenses = asyncHandler(async (req, res, next) => {
     .populate('vehicle', 'vehicleNumber type capacity')
     .populate({
       path: 'driver',
-      populate: { path: 'name', select: 'name email phone' }
+      populate: { path: 'user', select: 'name email phone' },
     })
     .sort({ expenseDate: -1 });
 
@@ -43,7 +42,7 @@ export const getExpenseById = asyncHandler(async (req, res, next) => {
     .populate('vehicle', 'vehicleNumber type capacity')
     .populate({
       path: 'driver',
-      populate: { path: 'name', select: 'name email phone' }
+      populate: { path: 'user', select: 'name email phone' },
     });
 
   if (!expense) {
@@ -51,7 +50,7 @@ export const getExpenseById = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role === 'driver') {
-    const driverProfile = await Driver.findOne({ name: req.user._id });
+    const driverProfile = await Driver.findOne({ user: req.user._id });
     if (!driverProfile || expense.driver._id.toString() !== driverProfile._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized to view this expense' });
     }
@@ -64,23 +63,21 @@ export const getExpenseById = asyncHandler(async (req, res, next) => {
 // @route   POST /api/expenses
 // @access  Private (Admin, Driver)
 export const createExpense = asyncHandler(async (req, res, next) => {
-  const { vehicle, driver, fuelLiters, fuelCost, miscExpense, expenseDate, receiptUrl, trip } = req.body;
+  const { vehicle, driver, fuelLiters, fuelCost, miscExpense, expenseDate, receiptUrl } = req.body;
 
   if (!vehicle || !fuelLiters || !fuelCost || !expenseDate) {
     return res.status(400).json({ success: false, message: 'Vehicle, fuel liters, fuel cost, and date are required' });
   }
 
-  // Validate vehicle exists
   const targetVehicle = await Vehicle.findById(vehicle);
   if (!targetVehicle) {
     return res.status(404).json({ success: false, message: 'Vehicle not found' });
   }
 
-  // Resolve driver profile
   let driverId = driver;
   if (!driverId) {
     if (req.user.role === 'driver') {
-      const driverProfile = await Driver.findOne({ name: req.user._id });
+      const driverProfile = await Driver.findOne({ user: req.user._id });
       if (!driverProfile) {
         return res.status(400).json({ success: false, message: 'No driver profile associated with this account' });
       }
@@ -92,19 +89,16 @@ export const createExpense = asyncHandler(async (req, res, next) => {
     if (req.user.role === 'driver') {
       return res.status(403).json({ success: false, message: 'Drivers cannot create expenses for other drivers' });
     }
-    // Validate driver exists
     const targetDriver = await Driver.findById(driverId);
     if (!targetDriver) {
       return res.status(404).json({ success: false, message: 'Driver profile not found' });
     }
   }
 
-  // Generate unique expenseId
-  const expenseId = 'EXP-' + Date.now() + Math.floor(Math.random() * 1000);
+  const expenseId = 'EXP-' + crypto.randomUUID().slice(0, 12).toUpperCase();
 
   const expense = await Expense.create({
     expenseId,
-    trip,
     vehicle,
     driver: driverId,
     fuelLiters,
@@ -142,7 +136,7 @@ export const updateExpense = asyncHandler(async (req, res, next) => {
   }
 
   const allowedFields = {};
-  for (const key of ['vehicle', 'driver', 'fuelLiters', 'fuelCost', 'miscExpense', 'expenseDate', 'receiptUrl', 'trip']) {
+  for (const key of ['vehicle', 'driver', 'fuelLiters', 'fuelCost', 'miscExpense', 'expenseDate', 'receiptUrl']) {
     if (key in req.body) allowedFields[key] = req.body[key];
   }
 

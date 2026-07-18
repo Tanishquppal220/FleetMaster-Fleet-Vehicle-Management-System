@@ -21,7 +21,6 @@ export default function VehiclesPage() {
     capacity: '',
     fuelStatus: 100,
     maintenanceStatus: 'Satisfactory',
-    availability: true,
     assignedDriver: '',
   });
 
@@ -59,7 +58,6 @@ export default function VehiclesPage() {
       capacity: '',
       fuelStatus: 100,
       maintenanceStatus: 'Satisfactory',
-      availability: true,
       assignedDriver: '',
     });
     setIsEditing(false);
@@ -73,7 +71,6 @@ export default function VehiclesPage() {
       capacity: v.capacity,
       fuelStatus: v.fuelStatus || 100,
       maintenanceStatus: v.maintenanceStatus || 'Satisfactory',
-      availability: v.availability !== undefined ? v.availability : true,
       assignedDriver: v.assignedDriver ? v.assignedDriver._id : '',
     });
     setCurrentId(v._id);
@@ -341,31 +338,16 @@ export default function VehiclesPage() {
                   <option value="">Unassigned</option>
                   {drivers
                     .filter((d) => {
-                      // Show drivers who have no vehicle assigned
                       const isFree = !d.assignedVehicle;
-                      // When editing, also include the currently assigned driver so
-                      // their name stays visible even though they have a vehicle
-                      const isCurrentDriver = isEditing && (d.name?._id || d._id) === formData.assignedDriver;
+                      const isCurrentDriver = isEditing && (d.user?._id || d._id) === formData.assignedDriver;
                       return isFree || isCurrentDriver;
                     })
                     .map((d) => (
-                      <option key={d._id} value={d.name?._id || d._id}>
-                        {d.name?.name || 'Unknown Driver'} ({d.licenseNumber})
+                      <option key={d._id} value={d.user?._id || d._id}>
+                        {d.user?.name || 'Unknown Driver'} ({d.licenseNumber})
                       </option>
                     ))}
                 </select>
-              </div>
-
-              <div className="flex items-center gap-2 py-2">
-                <input
-                  type="checkbox"
-                  id="availability"
-                  name="availability"
-                  checked={formData.availability}
-                  onChange={handleChange}
-                  className="h-4 w-4 accent-emerald-500 rounded border-zinc-700"
-                />
-                <label htmlFor="availability" className="text-sm font-medium">Available for active deployments</label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">

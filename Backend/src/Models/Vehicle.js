@@ -28,10 +28,6 @@ const VehicleSchema = new mongoose.Schema({
     enum: ['Satisfactory', 'Service Due', 'Under Repair'],
     default: 'Satisfactory',
   },
-  availability: {
-    type: Boolean,
-    default: true,
-  },
   assignedDriver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -39,6 +35,12 @@ const VehicleSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+});
+
+VehicleSchema.virtual('availability').get(function () {
+  return this.maintenanceStatus === 'Satisfactory';
 });
 
 const Vehicle = mongoose.model('Vehicle', VehicleSchema);

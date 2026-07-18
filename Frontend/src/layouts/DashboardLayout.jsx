@@ -42,6 +42,9 @@ export default function DashboardLayout() {
               <NavLink to="/dashboard/expenses" className={linkClass}>
                 <FaGasPump /> Expenses
               </NavLink>
+              <NavLink to="/dashboard/users" className={linkClass}>
+                <FaUserGear /> Users
+              </NavLink>
             </>
           )}
           
@@ -116,6 +119,9 @@ export default function DashboardLayout() {
           </NavLink>
           <NavLink to="/dashboard/expenses" className={linkClass}>
             <FaGasPump /> Expenses
+          </NavLink>
+          <NavLink to="/dashboard/users" className={linkClass}>
+            <FaUserGear /> Users
           </NavLink>
         </nav>
         <Outlet />
