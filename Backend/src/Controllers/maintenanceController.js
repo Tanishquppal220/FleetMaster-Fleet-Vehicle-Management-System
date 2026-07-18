@@ -59,7 +59,7 @@ export const getMaintenanceRecordById = asyncHandler(async (req, res, next) => {
 // @access  Private (Admin, Mechanic)
 export const createMaintenanceRecord = asyncHandler(async (req, res, next) => {
   const { vehicle, type, scheduledDate, cost, description, priority } = req.body;
-  const assignedMechanic = req.user.role === 'admin' ? (req.body.assignedMechanic || null) : null;
+  const assignedMechanic = req.user.role === 'admin' ? (req.body.assignedMechanic || null) : req.user._id;
 
   if (!vehicle || !type || !scheduledDate) {
     return res.status(400).json({ success: false, message: 'Vehicle, type, and scheduled date are required' });
