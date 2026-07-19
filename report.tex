@@ -1,0 +1,178 @@
+\documentclass[12pt, a4paper]{report}
+
+% Packages for fonts, formatting, and layout
+\usepackage[top=1in, bottom=1in, left=1.5in, right=1in]{geometry}
+\usepackage{setspace}
+\usepackage{mathptmx} % Times New Roman equivalent
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{textcase}
+
+% 1.5 Line Spacing
+\onehalfspacing
+
+% Caption formatting (Font size 10pt = \footnotesize in 12pt document)
+\captionsetup[table]{font=footnotesize, position=top, justification=centering}
+\captionsetup[figure]{font=footnotesize, position=bottom, justification=centering}
+
+% Chapter formatting: Capitalized, Times New Roman 16 pt bold
+\titleformat{\chapter}[display]
+  {\normalfont\fontsize{16}{19.2}\bfseries}
+  {\chaptertitlename\ \thechapter}{10pt}{\fontsize{16}{19.2}\bfseries\MakeTextUppercase}
+
+% Section formatting: Capitalized, Times New Roman 12 pt
+\titleformat{\section}
+  {\normalfont\fontsize{12}{14.4}\selectfont}
+  {\thesection}{1em}{\MakeTextUppercase}
+
+% Subsection formatting: Capitalized, Times New Roman 12 pt
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{14.4}\selectfont}
+  {\thesubsection}{1em}{\MakeTextUppercase}
+
+% Table of Contents formatting
+\renewcommand{\contentsname}{\centerline{\normalfont\fontsize{16}{19.2}\bfseries TABLE OF CONTENTS}}
+
+% Make Chapter TOC entries bold 12pt
+\renewcommand{\cftchapfont}{\normalfont\fontsize{12}{14.4}\bfseries}
+\renewcommand{\cftchappagefont}{\normalfont\fontsize{12}{14.4}\bfseries}
+
+% Make Section TOC entries bold 12pt
+\renewcommand{\cftsecfont}{\normalfont\fontsize{12}{14.4}\bfseries}
+\renewcommand{\cftsecpagefont}{\normalfont\fontsize{12}{14.4}\bfseries}
+
+% Make Subsection TOC entries bold 12pt
+\renewcommand{\cftsubsecfont}{\normalfont\fontsize{12}{14.4}\bfseries}
+\renewcommand{\cftsubsecpagefont}{\normalfont\fontsize{12}{14.4}\bfseries}
+
+\begin{document}
+
+% -------------------------
+% COVER PAGE
+% -------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\fontsize{16}{19.2}\selectfont SUMMER TRAINING/INTERNSHIP REPORT\par}
+    \vspace{0.5cm}
+    {\fontsize{16}{19.2}\selectfont (Term Aug-Dec 2026)\par}
+
+    \vspace{4cm}
+
+    {\fontsize{12}{14.4}\selectfont Submitted by\par}
+    \vspace{1.5cm}
+
+    {\fontsize{12}{14.4}\selectfont (Name of Student1 ) \hspace{2cm} Registration\par}
+    {\fontsize{12}{14.4}\selectfont Number :……………………..\par}
+
+    \vfill
+
+    {\fontsize{16}{19.2}\selectfont School of Computer Science and Engineering\par}
+
+    \vspace*{2cm}
+\end{titlepage}
+
+% -------------------------
+% PRELIMINARY PAGES
+% -------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+\pagestyle{plain}
+
+% Declaration
+\chapter*{DECLARATION}
+\addcontentsline{toc}{chapter}{DECLARATION}
+I hereby declare that the summer training/internship report entitled ``FleetMaster: Fleet Management System'' is an authentic record of my own work.
+
+\clearpage
+
+% Certificate
+\chapter*{CERTIFICATE}
+\addcontentsline{toc}{chapter}{CERTIFICATE}
+This is to certify that the summer training/internship report entitled ``FleetMaster: Fleet Management System'' is submitted by (Name of Student1).
+
+\clearpage
+
+% Acknowledgement
+\chapter*{ACKNOWLEDGEMENT}
+\addcontentsline{toc}{chapter}{ACKNOWLEDGEMENT}
+I would like to express my gratitude to my mentors and the organization for their guidance and support during the internship.
+
+\clearpage
+
+% Table of Contents
+\tableofcontents
+\clearpage
+
+% -------------------------
+% MAIN CONTENT
+% -------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{plain}
+
+% 1. Introduction of Organization
+\chapter{Introduction of Organization}
+\thispagestyle{empty} % Page 1 of introduction doesn't appear in print
+
+\section{Overview}
+The organization has been a leading provider of fleet management software, ensuring efficient tracking and optimization of vehicles for various enterprises.
+
+% 2. Summer Training Course/Internship Content detail
+\chapter{Summer Training Course/Internship Content detail}
+\section{Training Modules}
+The internship covered various web development technologies including React, Express.js, MongoDB, Node.js, and modern tools such as Vite and Tailwind CSS. The course included hands-on building of real-time web applications.
+
+% 3. Summer Training/ Internship Project Detail
+\chapter{Summer Training/ Internship Project Detail}
+
+\section{Problem Statement}
+Managing a large fleet of vehicles is complex, requiring real-time tracking, maintenance scheduling, and expense management. Without an automated system, the overhead increases and the operational efficiency drops significantly.
+
+\section{Project Outcomes}
+Developed the FleetMaster application which allows admins to efficiently manage vehicles, drivers, expenses, and maintenance logs. The platform includes a secure backend API and a responsive React frontend dashboard featuring role-based access for mechanics and admins.
+
+\section{Technologies used}
+Frontend: React, Vite, Tailwind CSS, React Router\\
+Backend: Node.js, Express.js, Mongoose\\
+Database: MongoDB\\
+Authentication: JSON Web Tokens (JWT)
+
+% 4. Source Code (where ever applicable) or System Snapshots
+\chapter{Source Code (where ever applicable) or System Snapshots}
+
+\section{System Snapshots}
+Below is a demonstration of tables and figures formatted according to the guidelines.
+
+\begin{table}[h!]
+\centering
+\caption{Predicted Student Grade Distribution}
+\vspace{0.2cm}
+\begin{tabular}{|l|c|c|c|}
+\hline
+Term & Number of students & Number of A's & Number of F's \\
+\hline
+Spring 2015 & 47 & 45 & 2 \\
+Autumn 2016 & 47 & 47 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\vspace{2cm} % Placeholder space for image
+\caption{Result of experiment}
+\end{figure}
+
+% 12. Bibliography
+\setcounter{chapter}{11}
+\chapter{Bibliography}
+\begin{thebibliography}{9}
+\bibitem{fleetmaster}
+FleetMaster Project Documentation, Internal Resources, 2026.
+\end{thebibliography}
+
+\end{document}
